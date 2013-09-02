@@ -7,7 +7,9 @@ import eu.cloudtm.stats.ProcessedSample;
 import eu.cloudtm.stats.StatsCollector;
 import org.apache.log4j.Logger;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -41,6 +43,24 @@ public class Main {
         main.reloadProperties();
         main.makeRound();
         //main.randomTest();
+        //main.sendDummyData();
+    }
+
+    private void sendDummyData() {
+        Map<String, Integer> txClassMap = new HashMap<String, Integer>();
+        for (int i = 0; i < 20; ++i) {
+            txClassMap.put("tx-class-" + i, i % 10);
+        }
+        Map<Integer, Float> clusterWeightMap = new HashMap<Integer, Float>();
+        for (int i = 0; i < 10; ++i) {
+            clusterWeightMap.put(i, 0.1f);
+        }
+        Map<String, Integer> domainClassMap = new HashMap<String, Integer>();
+        for (int i = 0; i < 50; ++i) {
+            domainClassMap.put("domain-class-" + i, i % 10);
+        }
+        LCRDMappings mappings = new LCRDMappings(txClassMap, domainClassMap, clusterWeightMap);
+        updateMappings.updateMappings(mappings);
     }
 
     private void randomTest() {

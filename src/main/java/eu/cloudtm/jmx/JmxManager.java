@@ -26,6 +26,7 @@ public class JmxManager {
     private static final JmxMachine[] EMPTY_MACHINES = new JmxMachine[0];
     private static final Logger log = Logger.getLogger(JmxManager.class);
     private static final String JMX_URL_FORMAT = "service:jmx:rmi:///jndi/rmi://%s:%s/jmxrmi";
+    //private static final String JBOSS_REMOTING_URL_FORMAT = "service:jmx:remoting-jmx://%s:%s";
     protected JmxMachine[] machines;
 
     public synchronized final void update(Properties properties) {
@@ -125,6 +126,7 @@ public class JmxManager {
                     return connector.getMBeanServerConnection();
                 }
             } catch (IOException e) {
+                log.error("Error creating connection for " + this, e);
                 internalClose();
             }
             return null;
@@ -137,6 +139,7 @@ public class JmxManager {
             try {
                 connector = JMXConnectorFactory.connect(new JMXServiceURL(jmxUrl));
             } catch (Exception e) {
+                log.error("Error creating connector for " + this, e);
                 internalClose();
             }
         }
