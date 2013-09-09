@@ -25,8 +25,8 @@ public class JmxManager {
     public static final Object[] EMPTY_PARAMS = new Object[0];
     private static final JmxMachine[] EMPTY_MACHINES = new JmxMachine[0];
     private static final Logger log = Logger.getLogger(JmxManager.class);
-    private static final String JMX_URL_FORMAT = "service:jmx:rmi:///jndi/rmi://%s:%s/jmxrmi";
-    //private static final String JBOSS_REMOTING_URL_FORMAT = "service:jmx:remoting-jmx://%s:%s";
+    //private static final String JMX_URL_FORMAT = "service:jmx:rmi:///jndi/rmi://%s:%s/jmxrmi";
+    private static final String JMX_URL_FORMAT = "service:jmx:remoting-jmx://%s:%s";
     protected JmxMachine[] machines;
 
     public synchronized final void update(Properties properties) {

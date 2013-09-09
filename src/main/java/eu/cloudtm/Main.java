@@ -3,14 +3,17 @@ package eu.cloudtm;
 import eu.cloudtm.jmx.*;
 import eu.cloudtm.optimizer.LCRDMappings;
 import eu.cloudtm.optimizer.LCRDOptimizer;
+import eu.cloudtm.optimizer.MorphOptimizer;
 import eu.cloudtm.stats.ProcessedSample;
 import eu.cloudtm.stats.StatsCollector;
 import org.apache.log4j.Logger;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Properties;
+import javax.management.MBeanServerConnection;
+import javax.management.ObjectName;
+import java.util.*;
+
+import static eu.cloudtm.jmx.JmxManager.EMPTY_PARAMS;
+import static eu.cloudtm.jmx.JmxManager.EMPTY_SIGNATURE;
 
 /**
  * @author Pedro Ruivo
@@ -26,6 +29,7 @@ public class Main {
     private final InfinispanObjectNameFinder infinispanObjectNameFinder;
     private final FenixObjectNameFinder fenixObjectNameFinder;
     private final DapController dapController;
+    private final MorphOptimizer morphOptimizer;
     private volatile int collectionTime;
 
     public Main() {
@@ -36,14 +40,118 @@ public class Main {
         statsCollector = new StatsCollector(jmxManager, fenixObjectNameFinder, infinispanObjectNameFinder);
         updateMappings = new UpdateMappings(jmxManager, fenixObjectNameFinder, infinispanObjectNameFinder);
         dapController = new DapController(jmxManager, fenixObjectNameFinder);
+        morphOptimizer = new MorphOptimizer(jmxManager, infinispanObjectNameFinder, fenixObjectNameFinder);
     }
 
     public static void main(String[] args) throws InterruptedException {
         Main main = new Main();
         main.reloadProperties();
-        main.makeRound();
+        //main.makeRound();
         //main.randomTest();
         //main.sendDummyData();
+        if (args.length == 0) {
+            System.err.println("Expected: <action>");
+            System.exit(1);
+        }
+        if ("protocol".equals(args[0])) {
+            if (args.length < 2) {
+                System.err.println("Expected: protocol <protocol-name>");
+                System.exit(1);
+            }
+            main.setProtocol(args[1]);
+        } else if ("auto-placer".equals(args[0])) {
+            main.triggerDataPlacement();
+        } else if ("top-key".equals(args[0])) {
+            if (args.length < 2) {
+                System.err.println("Expected: top-key <true or false>");
+                System.exit(1);
+            }
+            main.enableTopKey(Boolean.valueOf(args[1]));
+        } else if ("morph".equals(args[0])) {
+            main.morphOptimizer.optimize();
+        }
+        main.jmxManager.closeConnections();
+        System.exit(0);
+    }
+
+    private void enableTopKey(final boolean enabled) {
+        jmxManager.perform(new JmxManager.MBeanConnectionAction() {
+            @Override
+            public void perform(MBeanServerConnection connection, String hostAddress, int port) {
+                final Object[] params = new Object[]{enabled};
+                final String[] signature = new String[]{boolean.class.getName()};
+                log.debug((enabled ? "Enabling" : "Disabling") + " top-key in " + hostAddress + "(" + port + ")");
+                Set<ObjectName> ispnObjectNameSet = infinispanObjectNameFinder.findCacheComponent(connection,
+                        "StreamLibStatistics");
+                log.debug("ISPN found: " + ispnObjectNameSet);
+                if (ispnObjectNameSet.isEmpty()) {
+                    return;
+                }
+                final ObjectName topKeyObjectName = ispnObjectNameSet.iterator().next();
+                try {
+                    connection.invoke(topKeyObjectName, "setStatisticsEnabled", params, signature);
+                } catch (Exception e) {
+                    log.error("Error " + (enabled ? "enabling" : "disabling") + " top-key in " + hostAddress +
+                            "(" + port + ")", e);
+                }
+            }
+        });
+    }
+
+    private void triggerDataPlacement() {
+        jmxManager.perform(new JmxManager.MBeanConnectionAction() {
+            private volatile boolean executed = false;
+
+            @Override
+            public void perform(MBeanServerConnection connection, String hostAddress, int port) {
+                if (executed) {
+                    return;
+                }
+                log.debug("Triggering data placement in " + hostAddress + "(" + port + ")");
+                Set<ObjectName> ispnObjectNameSet = infinispanObjectNameFinder.findCacheComponent(connection,
+                        "DataPlacementManager");
+                log.debug("ISPN found: " + ispnObjectNameSet);
+                if (ispnObjectNameSet.isEmpty()) {
+                    return;
+                }
+                final ObjectName dataPlacementObjectName = ispnObjectNameSet.iterator().next();
+                try {
+                    connection.invoke(dataPlacementObjectName, "dataPlacementRequest", EMPTY_PARAMS, EMPTY_SIGNATURE);
+                    executed = true;
+                } catch (Exception e) {
+                    log.error("Error triggering dataplacement in " + hostAddress + "(" + port + ")", e);
+                }
+            }
+        });
+    }
+
+    private void setProtocol(final String protocol) {
+        jmxManager.perform(new JmxManager.MBeanConnectionAction() {
+
+            private volatile boolean executed = false;
+
+            @Override
+            public void perform(MBeanServerConnection connection, String hostAddress, int port) {
+                if (executed) {
+                    return;
+                }
+                log.debug("Setting protocol to " + protocol + " in " + hostAddress + "(" + port + ")");
+                Set<ObjectName> fenixObjectNameSet = fenixObjectNameFinder.findFenixComponent(connection, "Worker");
+                log.debug("Fenix found: " + fenixObjectNameSet);
+                if (fenixObjectNameSet.isEmpty()) {
+                    return;
+                }
+                final ObjectName workerObjectName = fenixObjectNameSet.iterator().next();
+                final Object[] params = new Object[]{protocol};
+                final String[] signature = new String[]{String.class.getName()};
+                try {
+                    connection.invoke(workerObjectName, "setProtocol", params, signature);
+                    executed = true;
+                } catch (Exception e) {
+                    log.error("Error setting protocol in " + hostAddress + "(" + port + ")", e);
+                }
+            }
+        });
     }
 
     private void sendDummyData() {
@@ -107,6 +215,7 @@ public class Main {
         statsCollector.update(properties);
         infinispanObjectNameFinder.update(properties);
         fenixObjectNameFinder.update(properties);
+        morphOptimizer.update(properties);
         this.collectionTime = Integer.parseInt(properties.getProperty("collectionTime"));
     }
 
