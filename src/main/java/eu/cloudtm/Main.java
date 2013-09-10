@@ -41,9 +41,10 @@ public class Main {
     public static void main(String[] args) throws InterruptedException {
         Main main = new Main();
         main.reloadProperties();
-        main.makeRound();
+        //main.makeRound();
         //main.randomTest();
         //main.sendDummyData();
+        main.sendPreComputedData3Clusters();
     }
 
     private void sendDummyData() {
@@ -59,6 +60,81 @@ public class Main {
         for (int i = 0; i < 50; ++i) {
             domainClassMap.put("domain-class-" + i, i % 10);
         }
+        LCRDMappings mappings = new LCRDMappings(txClassMap, domainClassMap, clusterWeightMap);
+        updateMappings.updateMappings(mappings);
+    }
+    
+    /*
+    Generated mappings is LCRDMappings{
+    transactionClassMap={
+        TPCW-execute-search=2, 
+        TPCW-buy-confirm-servlet=0, 
+        TPCW-new-products-servlet=2, 
+        TPCW-buy-request-servlet=0, 
+        TPCW-promotional-processing=2, 
+        TPCW-best-sellers-servlet=1, 
+        TPCW-say-hello=0, 
+        TPCW-product-detail-servlet=2, 
+        TPCW-shopping-cart-interaction=2, 
+        TPCW-order-display-servlet=0, 
+        TPCW-customer-registration-servlet=0}, 
+    domainObjectClassMap={
+        pt.ist.fenixframework.adt.bplustree.InnerNode=2, 
+        pt.ist.fenixframework.adt.bplustree.BPlusTree=2, 
+        pt.ist.fenixframework.adt.bplustree.LeafNode=2, 
+        pt.ist.fenixframework.example.tpcw.domain.Author=2, 
+        pt.ist.fenixframework.DomainRoot=2, 
+        pt.ist.fenixframework.example.tpcw.domain.Book=2, 
+        pt.ist.fenixframework.example.tpcw.domain.App=2, 
+        pt.ist.fenixframework.example.tpcw.domain.Country=0, 
+        pt.ist.fenixframework.example.tpcw.domain.Orders=1, 
+        pt.ist.fenixframework.example.tpcw.domain.ShoppingCart=2, 
+        pt.ist.fenixframework.example.tpcw.domain.CCXact=1, 
+        pt.ist.fenixframework.example.tpcw.domain.ShoppingCartLine=2, 
+        pt.ist.fenixframework.example.tpcw.domain.OrderLine=1, 
+        pt.ist.fenixframework.example.tpcw.domain.Address=0, 
+        pt.ist.fenixframework.adt.bplustree.AbstractNode=2, 
+        pt.ist.fenixframework.example.tpcw.domain.Customer=0}, 
+    clusterWeightMap={2=0.30819854, 0=0.6109371, 1=0.080864385}}
+    */
+    private void sendPreComputedData3Clusters() {
+        Map<String, Integer> txClassMap = new HashMap<String, Integer>();
+        Map<Integer, Float> clusterWeightMap = new HashMap<Integer, Float>();
+        Map<String, Integer> domainClassMap = new HashMap<String, Integer>();
+        
+        txClassMap.put("TPCW-execute-search", 2);
+        txClassMap.put("TPCW-buy-confirm-servlet", 0);
+        txClassMap.put("TPCW-new-products-servlet", 2);
+        txClassMap.put("TPCW-buy-request-servlet", 0);
+        txClassMap.put("TPCW-promotional-processing", 2);
+        txClassMap.put("TPCW-best-sellers-servlet", 1);
+        txClassMap.put("TPCW-say-hello", 0);
+        txClassMap.put("TPCW-product-detail-servlet", 2);
+        txClassMap.put("TPCW-shopping-cart-interaction", 2);
+        txClassMap.put("TPCW-order-display-servlet", 0);
+        txClassMap.put("TPCW-customer-registration-servlet", 0);
+        
+        clusterWeightMap.put(0, 0.6109371f);
+        clusterWeightMap.put(1, 0.080864385f);
+        clusterWeightMap.put(2, 0.30819854f);
+        
+        domainClassMap.put("pt.ist.fenixframework.adt.bplustree.InnerNode", 2);
+        domainClassMap.put("pt.ist.fenixframework.adt.bplustree.BPlusTree", 2);
+        domainClassMap.put("pt.ist.fenixframework.adt.bplustree.LeafNode", 2);
+        domainClassMap.put("pt.ist.fenixframework.example.tpcw.domain.Author", 2);
+        domainClassMap.put("pt.ist.fenixframework.DomainRoot", 2);
+        domainClassMap.put("pt.ist.fenixframework.example.tpcw.domain.Book", 2);
+        domainClassMap.put("pt.ist.fenixframework.example.tpcw.domain.App", 2);
+        domainClassMap.put("pt.ist.fenixframework.example.tpcw.domain.Country", 0);
+        domainClassMap.put("pt.ist.fenixframework.example.tpcw.domain.Orders", 1);
+        domainClassMap.put("pt.ist.fenixframework.example.tpcw.domain.ShoppingCart", 2);
+        domainClassMap.put("pt.ist.fenixframework.example.tpcw.domain.CCXact", 1);
+        domainClassMap.put("pt.ist.fenixframework.example.tpcw.domain.ShoppingCartLine", 2);
+        domainClassMap.put("pt.ist.fenixframework.example.tpcw.domain.OrderLine", 1);
+        domainClassMap.put("pt.ist.fenixframework.example.tpcw.domain.Address", 0);
+        domainClassMap.put("pt.ist.fenixframework.adt.bplustree.AbstractNode", 2);
+        domainClassMap.put("pt.ist.fenixframework.example.tpcw.domain.Customer", 0);
+        
         LCRDMappings mappings = new LCRDMappings(txClassMap, domainClassMap, clusterWeightMap);
         updateMappings.updateMappings(mappings);
     }

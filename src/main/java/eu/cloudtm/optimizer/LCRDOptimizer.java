@@ -28,13 +28,15 @@ public class LCRDOptimizer {
         log.debug("Optimize based on " + processedSample);
         LinkedHashMap<String, Double> txInvokeFrequency = processedSample.getTxInvokeFrequency();
         LinkedHashMap<String, Double> txResponseTime = processedSample.getTxResponseTime();
-        LinkedHashMap<String, Float> txWeight = calculateTxWeight(txInvokeFrequency, txResponseTime);
+        LinkedHashMap<String, LinkedHashMap<String, Integer>> dataAccessFrequencies = processedSample.getDataAccessFrequencies();
+        //LinkedHashMap<String, Float> txWeight = calculateTxWeight(txInvokeFrequency, txResponseTime);
+        LinkedHashMap<String, Float> txWeight = calculateTxWeight2(dataAccessFrequencies);
         int clusterID;
 
         log.debug("Generating clusters...");
-        generateClusters(processedSample.getDataAccessFrequencies());
+        generateClusters(dataAccessFrequencies);
 
-        if (txIDMap == null || txIDMap.isEmpty()) {
+        if (txIDMap == null || txIDMap.isEmpty() || txIDMap.size() < 3) {
             log.debug("No clusters has been generated!");
             return null;
         }
@@ -51,6 +53,7 @@ public class LCRDOptimizer {
 
         LCRDMappings mappings = new LCRDMappings(txClusterMap, primaryDataClusters, clusterWeight);
         log.debug("Generated mappings is " + mappings);
+		//if(1==1)throw new RuntimeException("boom...on purpose");
         return mappings;
     }
 
@@ -93,6 +96,13 @@ public class LCRDOptimizer {
 
         txClusterMap = new LinkedHashMap<String, Integer>();
         LDA_ExtendedResult ldaResult = LDA.generateOptimalLDAResult(ldaInput);
+		
+		while (true) {
+			ldaResult = LDA.generateOptimalLDAResult(ldaInput);
+			if (ldaResult.nTopics < 6) break;
+			System.out.println("Re-running LDA-optimize because we had too many clusters " + ldaResult.nTopics);
+		}
+		
         //txIDClusterMap = LDA.generateOptimalLDA(ldaInput);
         txIDClusterMap = ldaResult.getTransactionClusters();
         int[][] domainDataPlacement = ldaResult.getTop2DataPlacementClusters();//int[numberOfDomainTypes][2]
@@ -131,6 +141,27 @@ public class LCRDOptimizer {
             normalizedWeight.put(txID, temp.get(txID) / totalWeight);
         }
 
+        return normalizedWeight;
+    }
+    
+    private LinkedHashMap<String, Float> calculateTxWeight2(LinkedHashMap<String, LinkedHashMap<String, Integer>> dataAccessFrequencies) {
+        LinkedHashMap<String, Float> normalizedWeight = new LinkedHashMap<String, Float>();        
+        LinkedHashMap<String, Integer> temp = new LinkedHashMap<String, Integer>();
+        int totalWeight = 0;
+        float txWeight;
+        
+        for (String txID : dataAccessFrequencies.keySet()) {
+            temp.put(txID, 0);
+            for (String domainID : dataAccessFrequencies.get(txID).keySet()) {
+                temp.put(txID, temp.get(txID) + dataAccessFrequencies.get(txID).get(domainID));
+                totalWeight += dataAccessFrequencies.get(txID).get(domainID);
+            }
+        }
+        
+        for (String txID : temp.keySet()) {
+            normalizedWeight.put(txID, (float)temp.get(txID) / (float)totalWeight);
+            log.debug("Tx " + txID + " has weight of " + normalizedWeight.get(txID));
+        }
         return normalizedWeight;
     }
 
