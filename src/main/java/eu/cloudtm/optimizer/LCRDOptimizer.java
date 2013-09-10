@@ -53,7 +53,6 @@ public class LCRDOptimizer {
 
         LCRDMappings mappings = new LCRDMappings(txClusterMap, primaryDataClusters, clusterWeight);
         log.debug("Generated mappings is " + mappings);
-		//if(1==1)throw new RuntimeException("boom...on purpose");
         return mappings;
     }
 
